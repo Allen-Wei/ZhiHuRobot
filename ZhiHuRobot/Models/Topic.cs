@@ -59,7 +59,7 @@ namespace ZhiHuRobot.Models
         }
 
 
-        public static async Task<List<Question>> GetQuestions(int topicId, int page = 1)
+        public static async Task<List<Question>> GetQuestions(int topicId, int page)
         {
             string url = Config.TopicUrl(topicId, page);
             Console.WriteLine("GetQuestions({0}, {1}): {2}", topicId, page, url);
@@ -90,7 +90,7 @@ namespace ZhiHuRobot.Models
             return retQuestions;
         }
 
-        public static List<Question> GetQuestionsSync(int topicId, int page = 1)
+        public static List<Question> GetQuestionsSync(int topicId, int page)
         {
             string url = Config.TopicUrl(topicId, page);
             Console.WriteLine("GetQuestionsSync({0}, {1}): {2}", topicId, page, url);
@@ -109,7 +109,6 @@ namespace ZhiHuRobot.Models
                     };
                 })
                 .ToList();
-
 
                 retQuestions.AddRange(GetQuestionsSync(topicId, ++page));
             }

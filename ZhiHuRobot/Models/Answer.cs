@@ -19,7 +19,7 @@ namespace ZhiHuRobot.Models
 
         public List<string> DownloadImages()
         {
-            return Regex.Matches(this.Content, @"https://pic4\.zhimg\.com/[\w_\d]+_r.\w+")
+            return Regex.Matches(this.Content, @"https://pic4\.zhimg\.com/[\w_\d]+.\w+")
               .Cast<Match>()
               .AsParallel()
               .Select(match =>

@@ -83,13 +83,23 @@ namespace ZhiHuRobot.Models
 
         }
 
-        public Question InitAnswersSync(int offset = 10)
+        public Question InitAnswersSync(int offset = 0)
+        {
+            this.Answers = GetAnswersSync(this.Id, offset);
+            return this;
+        }
+
+        public async Task InitAnswers(int offset = 0)
+        {
+            this.Answers = await GetAnswers(this.Id, offset);
+        }
+
+        public static List<Answer> GetAnswersSync(int questionId, int offset)
         {
             var url = Config.QuestionUrl();
-            Console.WriteLine("InitAnswers: {0}", url);
+            Console.WriteLine("GetAnswersSync({0}, {1}): {2}", questionId, offset, url);
 
-            var data = String.Format("method=next&params={{\"url_token\":{0},\"pagesize\":10,\"offset\":{1}}}", this.Id, offset);
-
+            var data = String.Format("method=next&params={{\"url_token\":{0},\"pagesize\":10,\"offset\":{1}}}", questionId, offset);
             try
             {
                 var responseData = HttpUtils.StringSync(url, data);
@@ -112,19 +122,51 @@ namespace ZhiHuRobot.Models
                      return answer;
                  }).ToList();
 
+                if (answers.Count < 1) return answers;
 
-                if (this.Answers == null) this.Answers = new List<Answer>();
-                this.Answers.AddRange(answers);
-
-                InitAnswersSync(offset + 10);
+                answers.AddRange(GetAnswersSync(questionId, offset + 10));
+                return answers;
             }
             catch (Exception ex) { Console.WriteLine(ex.Message); }
 
-
-            return this;
-
+            return new List<Answer>();
         }
 
+        public static async Task<List<Answer>> GetAnswers(int questionId, int offset)
+        {
+            var url = Config.QuestionUrl();
+            Console.WriteLine("GetAnswers({0}, {1}): {2}", questionId, offset, url);
 
+            var data = String.Format("method=next&params={{\"url_token\":{0},\"pagesize\":10,\"offset\":{1}}}", questionId, offset);
+            try
+            {
+                var responseData = await HttpUtils.String(url, data);
+                var answers = JObject.Parse(responseData)["msg"].Select(htmlPartial =>
+                 {
+                     HtmlDocument node = new HtmlDocument();
+                     node.LoadHtml((string)htmlPartial);
+
+                     Answer answer = new Answer();
+
+                     var contentNode = node.GetElementByClassName("div", "zm-editable-content");
+                     if (contentNode != null) answer.Content = contentNode.InnerHtml.Trim();
+
+                     var userNameNode = node.GetElementByClassName("a", "author-link");
+                     if (userNameNode != null) answer.UserName = userNameNode.InnerText.Trim();
+
+                     var voteNode = node.GetElementByClassName("span", "count");
+                     if (voteNode != null) answer.VoteCount = Convert.ToInt32(voteNode.InnerText);
+
+                     return answer;
+                 }).ToList();
+
+
+                answers.AddRange(GetAnswersSync(questionId, offset + 10));
+                return answers;
+            }
+            catch (Exception ex) { Console.WriteLine(ex.Message); }
+
+            return new List<Answer>();
+        }
     }
 }
